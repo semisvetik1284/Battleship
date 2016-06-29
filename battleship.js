@@ -25,9 +25,9 @@ var model = {
 	
 	shipLenght: 3,
 	
-	ships: [{locations: ["06", "16", "26"], hits: ["", "", ""]},
-			{locations: ["24", "34", "44"], hits: ["", "", ""]},
-			{locations: ["10", "11", "12"], hits: ["", "", ""]}],
+	ships: [{locations: [0, 0, 0], hits: ["", "", ""]},
+			{locations: [0, 0, 0], hits: ["", "", ""]},
+			{locations: [0, 0, 0], hits: ["", "", ""]}],
 			
 	fire: function(guess){
 		for (var i=0; i<this.numShips; i++){
@@ -48,6 +48,53 @@ var model = {
 			view.displayMessage("You missed.");
 			return false;
 		},
+	generateShip: function() {
+		var direction = Math.floor(Math.random()*2);
+		var row, col;
+		if (direction === 1){
+			row = Math.floor(Math.random() * this.boardSize);
+			col = Math.floor(Math.random() * (this.boardSize - this.shipLength));
+		} else {
+			row = Math.floor(Math.random() * (this.boardSize - this.shipLength));
+			col = Math.floor(Math.random() * this.boardSize);
+		}
+		
+		var newShipLocations = [];
+		
+		for (var i=0; i<this.shipLenght; i++) {
+			if (direction === 1) {
+				newShipLocations.push(row + "" + (col+i));	
+			} else {
+				newShipLocations.push((row+i)+ "" + col);
+		
+			}
+		}
+	return newShipLocations;
+	},
+	
+	collision: function(locations) {
+		for (var i=0; i < this.numShips; i++) {
+			var ship = model.ships[i];
+			for (var j = 0; j < locations.length; j++){
+				if (ship.locations.indexOf(locations[j]) >=0) {
+				return true;
+			}
+		}
+	}
+	return false;
+	},
+	generateShipLocations: function() {
+		var locations;
+		for(var i=0; i<this.numShips; i++) {
+			do {
+				locations = this.generateShip();
+			} while (this.collision(locations));
+			this.ships[i].locations = locations;
+		}
+	},
+	
+	
+	
 		isSunk: function(ship) {
 			for (var i=0; i<this.shipLenght; i++){
 				if (ship.hits[i] !== "hit") {
@@ -68,7 +115,7 @@ var model = {
 	function parseGuess(guess) {
 		var alphabet = ["A", "B", "C", "D", "E", "F", "G"];
 		
-		if (guess===null /*|| guess.lenght!==2*/){
+		if (guess===null || guess.length!==2){
 			alert("Oops, please enter a letter and a number on the board.");
 		} else {
 			firstChar = guess.charAt(0);
@@ -87,9 +134,46 @@ var model = {
 			return null;
 		}
 		
-		console.log(parseGuess("0"));
-		console.log(parseGuess("B6"));
-		console.log(parseGuess("G3"));
-		console.log(parseGuess("H0"));
-		console.log(parseGuess("A7"));
+	var controller = {
+		guesses: 0,
 		
+		processGuess: function(guess){
+			var location = parseGuess(guess);
+			if (location) {
+				this.guesses++;
+				var hit = model.fire(location);
+				if (hit && model.shipsSunk == model.numShips) {
+					view.displayMessage("You sank all my battleships, in " +
+					                   this.guesses + " guesses");
+				}
+				
+			}
+		}
+	};
+		
+	function init() {
+		var fireButton = document.getElementById("fireButton");
+		fireButton.onclick = handleFireButton;
+		var guessInput = document.getElementById("guessInput");
+		guessInput.onkeypress = handleKeyPress;
+		
+		model.generateShipLocations();
+	}
+	
+	function handleKeyPress(e) {
+		var fireButton = document.getElementById("fireButton");
+		if (e.keyCode === 13) {
+			fireButton.click();
+			return false;
+		}
+	}
+	
+	function handleFireButton() {
+		var guessInput = document.getElementById("guessInput");
+		var guess = guessInput.value;
+		controller.processGuess(guess);
+		guessInput.value = "";
+	}
+	
+	
+	window.onload = init;
